@@ -133,6 +133,18 @@ Custom property | Description | Default
       width: calc(25% - 16px);
       margin: 8px;
     }
+
+    @media (max-width: 1000px) {
+      rest-apis-grid-item {
+        width: calc(50% - 16px);
+      }
+    }
+
+    @media all and (min-width: 1000px) and (max-width: 1200px) {
+      rest-apis-grid-item {
+        width: calc(33% - 16px);
+      }
+    }
     </style>
     <div class="header">
       <h2>REST APIs</h2>
