@@ -1,0 +1,630 @@
+<!--
+@license
+Copyright 2016 The Advanced REST client authors <arc@mulesoft.com>
+Licensed under the Apache License, Version 2.0 (the "License"); you may not
+use this file except in compliance with the License. You may obtain a copy of
+the License at
+http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+License for the specific language governing permissions and limitations under
+the License.
+-->
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../paper-toast/paper-toast.html">
+<link rel="import" href="../openable-panel-behavior/openable-panel-behavior.html">
+<link rel="import" href="../paper-progress/paper-progress.html">
+<link rel="import" href="../arc-icons/arc-icons.html">
+<link rel="import" href="../paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../paper-input/paper-input.html">
+<link rel="import" href="../iron-flex-layout/iron-flex-layout.html">
+<link rel="import" href="rest-apis-grid-item.html">
+<link rel="import" href="rest-apis-list-item.html">
+
+<!--
+`<rest-apis-list-panel>` REST APIs project list screen
+
+This element requires `arc-models/rest-api-model` element to be present in the
+DOM as this element does not connect to the datastore directly.
+The `arc-models/rest-api-model` element can be replaced by any element that
+supports the same event's API.
+
+### Example
+
+```html
+<link rel="import" href="../rest-apis-list-panel/rest-apis-list-panel.html">
+<link rel="import" href="../arc-models/rest-api-model.html">
+
+<rest-apis-list-panel></rest-apis-list-panel>
+<rest-api-model></rest-api-model>
+```
+
+### Styling
+`<rest-apis-list-panel>` provides the following custom properties and mixins for styling:
+
+Custom property | Description | Default
+----------------|-------------|----------
+`--rest-apis-list-panel` | Mixin applied to the element | `{}`
+`--rest-apis-list-panel-loader` | Mixin applied to the paper-progress element | `{}`
+`--arc-font-headline` | Mixin applied to the header | `{}`
+`--arc-font-subhead` | Mixin applied to the subheader | `{}`
+`--warning-primary-color` | Main color of the warning messages | `#FF7043`
+`--warning-contrast-color` | Contrast color for the warning color | `#fff`
+`--error-toast` | Mixin applied to the error toast | `{}`
+`--empty-info` | Mixin applied to the label rendered when no data is available. | `{}`
+
+@group UI Elements
+@element rest-apis-list-panel
+@demo demo/index.html
+-->
+<dom-module id="rest-apis-list-panel">
+  <template>
+    <style>
+    :host {
+      display: block;
+      @apply --rest-apis-list-panel;
+    }
+
+    .header {
+      @apply --layout-horizontal;
+      @apply --layout-center;
+    }
+
+    h2 {
+      margin-left: 16px;
+      @apply --arc-font-headline;
+      @apply --layout-flex-9;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    paper-progress {
+      width: 100%;
+      @apply --rest-apis-list-panel-loader;
+    }
+
+    paper-icon-button {
+      border-radius: 50%;
+      min-width: 40px;
+      min-height: 40px;
+    }
+
+    paper-icon-button[active] {
+      background-color: var(--rest-apis-list-panel-toggle-view-active-background-color, #00A1DF);
+      color: var(--rest-apis-list-panel-toggle-view-active-color, #fff);
+    }
+
+    .error-toast {
+      background-color: var(--warning-primary-color, #FF7043);
+      color: var(--warning-contrast-color, #fff);
+      @apply --error-toast;
+    }
+
+    .empty-info {
+      margin-left: 16px;
+      font-size: 16px;
+      @apply --empty-info;
+    }
+
+    .header-actions {
+      @apply --layout-horizontal;
+      @apply --layout-center;
+      @apply --layout-flex-3;
+    }
+
+    .header-actions paper-input {
+      @apply --layout-flex-2;
+      margin-left: 16px;
+    }
+
+    .list[data-grid] {
+      @apply --layout-horizontal;
+      @apply --layout-wrap;
+    }
+
+    .list[data-list] {
+      @apply --layout-vertical;
+    }
+
+    rest-apis-grid-item {
+      width: calc(25% - 16px);
+      margin: 8px;
+    }
+    </style>
+    <div class="header">
+      <h2>REST APIs</h2>
+      <div class="header-actions">
+        <paper-icon-button icon="arc:view-column" class="dropdown-trigger" toggles active="[[gridActive]]" on-tap="_enableGrid"></paper-icon-button>
+        <paper-icon-button icon="arc:view-list" class="dropdown-trigger" toggles active="[[listActive]]" on-tap="_enableList"></paper-icon-button>
+        <paper-input type="search" value="{{query}}" label="Search" no-label-float on-search="updateSearch"></paper-input>
+      </div>
+    </div>
+    <template is="dom-if" if="[[querying]]">
+      <paper-progress indeterminate></paper-progress>
+    </template>
+    <template is="dom-if" if="[[dataUnavailable]]">
+      <p class="empty-info">REST APIs list is empty. Drag and drop RAML zip file here to begin.</p>
+    </template>
+    <section class="list" data-grid$="[[gridActive]]" data-list$="[[listActive]]" hidden$="[[listHidden]]">
+      <template is="dom-repeat" items="[[items]]" index-as="index">
+        <template is="dom-if" if="[[gridActive]]" restamp="true">
+          <rest-apis-grid-item item="[[item]]" on-open-list-item="_navigateItem" on-delete-list-item="_deleteItem" noink="[[noink]]"></rest-apis-grid-item>
+        </template>
+        <template is="dom-if" if="[[listActive]]" restamp="true">
+          <rest-apis-list-item item="[[item]]" on-open-list-item="_navigateItem" on-delete-list-item="_deleteItem" noink="[[noink]]"></rest-apis-list-item>
+        </template>
+      </template>
+    </section>
+    <paper-toast id="errorToast" class="error-toast" duration="5000"></paper-toast>
+    <paper-toast id="noModel" class="error-toast" text="Model not found. Please, report an issue."></paper-toast>
+    <paper-toast id="deletedToast" text="API data has been removed from the datastore"></paper-toast>
+  </template>
+  <script>
+  Polymer({
+    is: 'rest-apis-list-panel',
+
+    behaviors: [
+      ArcBehaviors.OpenablePanelBehavior
+    ],
+
+    properties: {
+      /**
+       * Saved items restored from the datastore.
+       */
+      items: Array,
+      // True when the element is querying the database for the data.
+      querying: {
+        type: Boolean,
+        readOnly: true,
+        notify: true
+      },
+      // Computed value, true if the `items` property has values.
+      hasItems: {
+        type: Boolean,
+        value: false,
+        computed: '_computeHasItems(items.length)',
+        notify: true
+      },
+      /**
+       * Computed value. True if query ended and there's no results.
+       */
+      dataUnavailable: {
+        type: Boolean,
+        computed: '_computeDataUnavailable(hasItems, querying)'
+      },
+      // Currently selected project ID
+      selectedApi: String,
+      // Page token for datastore pagination
+      nextPageToken: String,
+      // Search query for the list.
+      query: String,
+      // True if the Grid view is active
+      gridActive: {
+        type: Boolean,
+        value: true
+      },
+      // True if list view is active
+      listActive: Boolean,
+      /**
+       * If true, the element will not produce a ripple effect when interacted
+       * with via the pointer.
+       */
+      noink: Boolean,
+      // Computed value, true if the requests lists is hidden.
+      listHidden: {
+        type: Boolean,
+        computed: '_computeListHidden(hasItems, isSearch)'
+      },
+    },
+
+    observers: [
+      '_requery(_isOpened)'
+    ],
+
+    attached: function() {
+      this.listen(window, 'datastore-destroyed', '_onDatabaseDestroy');
+      this.listen(window, 'rest-api-index-updated', '_indexUpdated');
+      this.listen(window, 'rest-api-deleted', '_indexDeleted');
+    },
+    detached: function() {
+      this.unlisten(window, 'datastore-destroyed', '_onDatabaseDestroy');
+      this.unlisten(window, 'rest-api-index-updated', '_indexUpdated');
+      this.unlisten(window, 'rest-api-deleted', '_indexDeleted');
+    },
+
+    /**
+     * Resets the state of the variables.
+     */
+    reset: function() {
+      if (this.nextPageToken) {
+        this.nextPageToken = undefined;
+      }
+      this._setQuerying(false);
+      this.set('items', []);
+    },
+    /**
+     * Resets the state after finishing search. It restors previous items
+     * without changing query options.
+     */
+    _resetSearch: function() {
+      this.set('items', this._beforeQueryItems);
+      this.isSearch = false;
+      this._beforeQueryItems = undefined;
+      if (!this.items) {
+        this.refresh();
+      }
+    },
+    /**
+     * Refreshes the data from the datastore.
+     * It resets the query options, clears items and makes a query to the datastore.
+     */
+    refresh: function() {
+      this.reset();
+      this.makeQuery();
+    },
+    _requery: function(_isOpened) {
+      if (_isOpened && !this.items && !this.querying) {
+        this.makeQuery();
+      }
+    },
+
+    // Handler for the `datastore-destroyed` custom event
+    _onDatabaseDestroy: function(e) {
+      var datastore = e.detail.datastore;
+      if (!datastore || !datastore.length) {
+        return;
+      }
+      if (typeof datastore === 'string') {
+        datastore = [datastore];
+      }
+      if (datastore.indexOf('rest-api-index') === -1 && datastore[0] !== 'all') {
+        return;
+      }
+      this.reset();
+    },
+
+    // Computes value for the `hasItems` property.
+    _computeHasItems: function(length) {
+      return !!(length);
+    },
+    /**
+     * The function to call when new query for data is needed.
+     */
+    makeQuery: function() {
+      this.debounce('menu-load-rest-apis', this._loadPage, 20);
+    },
+    /**
+     * Performs the query and processes the result.
+     */
+    _loadPage: function() {
+      if (!this._isOpened) {
+        return;
+      }
+      this._setQuerying(true);
+      var detail = {};
+      if (this.nextPageToken) {
+        detail.nextPageToken = this.nextPageToken;
+      }
+      var event = new CustomEvent('rest-api-index-list', {
+        detail: detail,
+        bubbles: true,
+        cancelable: true
+      });
+      this.dispatchEvent(event);
+      if (!event.defaultPrevented) {
+        this._setQuerying(false);
+        console.warn('REST API model detached from the dom.');
+        return;
+      }
+      return event.detail.result
+      .then(result => {
+        this.nextPageToken = result.nextPageToken;
+        return result.items;
+      })
+      .then(items => {
+        if (!items || !items.length) {
+          this._setQuerying(false);
+          return;
+        }
+        if (!this.items) {
+          items = this._prepareData(items);
+          this.set('items', items);
+        } else {
+          var concat = this.items.concat(items);
+          concat = this._prepareData(concat);
+          this.set('items', concat);
+        }
+        this._setQuerying(false);
+        this.async(() => {
+          this._loadPage();
+        }, 50);
+      })
+      .catch((e) => {
+        this._setQuerying(false);
+        this.fire('app-log', {
+          message: ['Query menu items', e],
+          level: 'error'
+        });
+        console.error('Query menu items', e);
+      });
+    },
+    /**
+     * Sorts projects list by `order` property.
+     *
+     * @param {Array} list List of projects objects
+     * @return {Array} Sorted list of projects
+     */
+    _prepareData: function(list) {
+      if (!list || !list.length) {
+        return [];
+      }
+      list.sort((a, b) => {
+        if (a.order < b.order) {
+          return -1;
+        }
+        if (a.order > b.order) {
+          return 1;
+        }
+        return a.title.localeCompare(b.title);
+      });
+      return list;
+    },
+    // Computes value for the `dataUnavailable` property.
+    _computeDataUnavailable: function(hasItems, querying) {
+      return !hasItems && !querying;
+    },
+
+    // Index item has been changed in the app somewhere..
+    _indexUpdated: function(e) {
+      if (this.isSearch) {
+        return this._indexUpdatedSearch(e);
+      }
+      if (!this.items && !this._isOpened) {
+        return;
+      }
+      var item = e.detail.doc;
+      if (!this.items) {
+        this.set('items', [item]);
+        return;
+      }
+      var index = this.items.findIndex(obj => obj._id === item._id);
+      if (index === -1) {
+        let it = this.items;
+        it.push(item);
+        it = this._prepareData(it);
+        this.set('items', it);
+      } else {
+        this.set(['item', index], item);
+      }
+    },
+    // Updates update event when search is on.
+    _indexUpdatedSearch: function(e) {
+      // the panel hasn't been initialized yet.
+      if (!this._beforeQueryItems && !this._isOpened) {
+        return;
+      }
+      var item = e.detail.doc;
+      // checks current visible items.
+      var items = this.items;
+      if (items && items.length) {
+        let index = items.findIndex(obj => obj._id === item._id);
+        if (index >= 0) {
+          this.set(['items', index], item);
+        }
+      }
+      // checks in-memory full list of items
+      items = this._beforeQueryItems;
+      if (!items) {
+        this._beforeQueryItems = [item];
+      } else {
+        let index = items.findIndex(obj => obj._id === item._id);
+        if (index === -1) {
+          items.push(item);
+        } else {
+          items[index] = item;
+        }
+        this._beforeQueryItems = items;
+      }
+    },
+    // Handler for the deleted event
+    _indexDeleted: function(e) {
+      if (this.isSearch) {
+        return this._indexDeletedSearch(e);
+      }
+      var items = this.items;
+      if (!items || !items.length) {
+        return;
+      }
+      var id = e.detail.id;
+      var index = items.findIndex(item => item._id === id);
+      if (index === -1) {
+        return;
+      }
+      this.splice('items', index, 1);
+    },
+    /**
+     * Handles delete event when search is on.
+     * Updates bothe `items` and `_beforeQueryItems` lists if removed item is on
+     * any of those lists.
+     */
+    _indexDeletedSearch: function(e) {
+      // the panel hasn't been initialized yet.
+      if (!this._beforeQueryItems && !this._isOpened) {
+        return;
+      }
+      var id = e.detail.id;
+      // checks current visible items.
+      var items = this.items;
+      if (items && items.length) {
+        let index = items.findIndex(obj => obj._id === id);
+        if (index >= 0) {
+          this.splice('items', index, 1);
+        }
+      }
+      // checks in-memory full list of items
+      items = this._beforeQueryItems;
+      if (items) {
+        let index = items.findIndex(obj => obj._id === id);
+        if (index >= 0) {
+          items.splice(index, 1);
+          this._beforeQueryItems = items;
+        }
+      }
+    },
+    // Handler for grid view button click
+    _enableGrid: function(e) {
+      var target = Polymer.dom(e).localTarget;
+      if (!target.active) {
+        e.preventDefault();
+        e.stopPropagation();
+        target.active = true;
+        return;
+      }
+      if (this.listActive) {
+        this.listActive = false;
+      }
+      if (!this.gridActive) {
+        this.gridActive = true;
+      }
+    },
+    // Handler for list view button click
+    _enableList: function(e) {
+      var target = Polymer.dom(e).localTarget;
+      if (!target.active) {
+        e.preventDefault();
+        e.stopPropagation();
+        target.active = true;
+        return;
+      }
+      if (this.gridActive) {
+        this.gridActive = false;
+      }
+      if (!this.listActive) {
+        this.listActive = true;
+      }
+    },
+
+    updateSearch: function() {
+      this.queryItems(this.query);
+    },
+
+    queryItems: function(query) {
+      if (!query) {
+        return this._resetSearch();
+      }
+      this.isSearch = true;
+      if (!this._beforeQueryItems) {
+        this._beforeQueryItems = this.items;
+      }
+      var availableItems = this.items;
+      if (!availableItems || !availableItems.length) {
+        this.set('items', undefined);
+        return;
+      }
+      query = this._prepareQuery(query);
+      var encodedQuery = encodeURIComponent(query);
+      var matches = availableItems.filter(item => {
+        if (item._id.toLowerCase().indexOf(encodedQuery) !== -1) {
+          return true;
+        }
+        if (item.description && item.description.indexOf(query) !== -1) {
+          return true;
+        }
+        return false;
+      });
+      this.set('items', matches);
+    },
+    /**
+     * Prepares the user query to be used in the datasore simple search.
+     * @param {String} query User query
+     * @return {String} Transformed query
+     */
+    _prepareQuery: function(query) {
+      query = String(query);
+      query = query.toLowerCase();
+      if (query[0] === '_') {
+        query = query.substr(1);
+      }
+      return query;
+    },
+    /**
+     * Sends `navigate` event so the application can handle navigation to the
+     * API project.
+     */
+    _navigateItem: function(e) {
+      this.fire('navigate', {
+        base: 'api-console',
+        id: e.detail._id
+      });
+    },
+    /**
+     * Dispatches cancelable `rest-api-deleted` event for the model to delete
+     * the entry.
+     *
+     * This requires `arc-models/rest-api-model` element to be present in the
+     * DOM.
+     */
+    _deleteItem: function(e) {
+      var event = this.fire('rest-api-deleted', {
+        id: e.detail._id
+      }, {
+        cancelable: true
+      });
+      if (!event.defaultPrevented) {
+        this.$.noModel.opened = true;
+        return;
+      }
+      event.detail.result.then(() => {
+        this.$.deletedToast.opened = true;
+      })
+      .catch(cause => {
+        console.error(cause.message);
+        this.fire('app-log', {
+          'message': [cause.message],
+          'level': 'error'
+        });
+        this.$.errorToast.text = cause.message;
+        this.$.errorToast.opened = true;
+      });
+    },
+
+    /**
+     * Computes value of the `listHidden` property.
+     * List is hidden when no items are found and it is not searching.
+     */
+    _computeListHidden: function(hasItems, isSearch) {
+      if (isSearch) {
+        return false;
+      }
+      return !hasItems;
+    },
+
+    /**
+     * Dispatched when the user opens the API portal.
+     *
+     * @event navigate
+     * @param {String} base Always `api-console`
+     * @param {String} id API datastore ID
+     */
+
+    /**
+     * Dispatched automatically when the element becomes visible to request
+     * API listing data from the datastore.
+     *
+     * @event rest-api-index-list
+     * @param {?String} nextPageToken Optional, page token returned with previous
+     * query
+     */
+
+    /**
+     * Dispatched when the user request to delete API entry.
+     *
+     * @event rest-api-deleted
+     * @param {String} id Datastore id of the entry to be deleted
+     */
+  });
+  </script>
+</dom-module>

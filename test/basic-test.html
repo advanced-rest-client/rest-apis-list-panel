@@ -1,0 +1,195 @@
+<!doctype html>
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+
+    <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
+    <script src="../../web-component-tester/browser.js"></script>
+    <script src="../../iron-test-helpers/test-helpers.js"></script>
+    <script src="../../iron-test-helpers/mock-interactions.js"></script>
+    <script src="../demo/data-generator.js"></script>
+    <script src="../../chance/dist/chance.min.js"></script>
+    <link rel="import" href="../rest-apis-list-panel.html">
+    <link rel="import" href="../../arc-models/rest-api-model.html">
+  </head>
+  <body>
+    <rest-api-model></rest-api-model>
+
+    <test-fixture id="basic">
+      <template>
+        <rest-apis-list-panel></rest-apis-list-panel>
+      </template>
+    </test-fixture>
+
+    <script>
+    /* global fixture, assert, DataGenerator */
+    suite('basic', function() {
+
+      suiteSetup(function() {
+        return DataGenerator.destroyData();
+      });
+
+      var element;
+      setup(function(done) {
+        element = fixture('basic');
+        element.addEventListener('querying-changed', function handler(e) {
+          if (e.detail.value) {
+            return;
+          }
+          element.removeEventListener('querying-changed', handler);
+          done();
+        });
+      });
+
+      test('Items are empty', function() {
+        assert.isUndefined(element.items);
+      });
+
+      test('hasItems is computed', function() {
+        assert.isFalse(element.hasItems);
+      });
+
+      test('isSearch is undefined', function() {
+        assert.isUndefined(element.isSearch);
+      });
+
+      test('listHidden is undefined', function() {
+        assert.isUndefined(element.listHidden);
+      });
+
+      test('dataUnavailable is computed', function() {
+        assert.isTrue(element.dataUnavailable);
+      });
+    });
+
+    suite('basic - with data', function() {
+      var element;
+      suiteSetup(function() {
+        return DataGenerator.generateData(10);
+      });
+      suiteTeardown(function() {
+        return DataGenerator.destroyData();
+      });
+      setup(function(done) {
+        element = fixture('basic');
+        element.addEventListener('querying-changed', function handler(e) {
+          if (e.detail.value) {
+            return;
+          }
+          element.removeEventListener('querying-changed', handler);
+          done();
+        });
+      });
+
+      test('Items are set', function() {
+        assert.typeOf(element.items, 'array', 'Items is an array');
+        assert.equal(element.items.length, 10, 'Items list contains 100 elements');
+      });
+
+      test('hasItems is computed', function() {
+        assert.isTrue(element.hasItems);
+      });
+
+      test('listHidden is undefined', function() {
+        assert.isUndefined(element.listHidden);
+      });
+
+      test('dataUnavailable is computed', function() {
+        assert.isFalse(element.dataUnavailable);
+      });
+
+      test('nextPageToken is set', function() {
+        assert.typeOf(element.nextPageToken, 'string');
+      });
+    });
+
+    suite('_prepareData()', function() {
+      var element;
+      var data;
+      setup(function() {
+        element = fixture('basic');
+        data = [{
+          _id: '1',
+          title: 'b'
+        }, {
+          _id: '2',
+          title: 'a'
+        }];
+      });
+      test('Returns empty array if no argument passed', function() {
+        var result = element._prepareData();
+        assert.typeOf(result, 'array');
+        assert.lengthOf(result, 0);
+      });
+
+      test('Returns empty array if passed empty array', function() {
+        var result = element._prepareData([]);
+        assert.typeOf(result, 'array');
+        assert.lengthOf(result, 0);
+      });
+      test('Returns a list of documents', function() {
+        var result = element._prepareData(data);
+        assert.typeOf(result[0]._id, 'string');
+      });
+      test('Documents are sorted by name', function() {
+        var result = element._prepareData(data);
+        assert.equal(result[0]._id, '2');
+        assert.equal(result[1]._id, '1');
+      });
+    });
+
+    suite('_computeListHidden()', function() {
+      var element;
+      setup(function() {
+        element = fixture('basic');
+      });
+      test('Computes false if searching', function() {
+        var result = element._computeListHidden(true, true);
+        assert.isFalse(result);
+      });
+      test('Computes false if searching and no items', function() {
+        var result = element._computeListHidden(false, true);
+        assert.isFalse(result);
+      });
+      test('Computes false if when has items', function() {
+        var result = element._computeListHidden(true, false);
+        assert.isFalse(result);
+      });
+      test('Computes true when not searching and no items', function() {
+        var result = element._computeListHidden(false, false);
+        assert.isTrue(result);
+      });
+    });
+
+    suite('_computeDataUnavailable()', function() {
+      var element;
+      setup(function() {
+        element = fixture('basic');
+      });
+      test('True when not searching, not loading, no data ', function() {
+        var result = element._computeDataUnavailable(false, false);
+        assert.isTrue(result);
+      });
+      test('False for any other combination ', function() {
+        var result = element._computeDataUnavailable(true, true);
+        assert.isFalse(result);
+        result = element._computeDataUnavailable(true, false);
+        assert.isFalse(result);
+        result = element._computeDataUnavailable(false, true);
+        assert.isFalse(result);
+      });
+    });
+    </script>
+
+  </body>
+</html>

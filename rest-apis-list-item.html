@@ -1,0 +1,150 @@
+<!--
+@license
+Copyright 2016 The Advanced REST client authors <arc@mulesoft.com>
+Licensed under the Apache License, Version 2.0 (the "License"); you may not
+use this file except in compliance with the License. You may obtain a copy of
+the License at
+http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+License for the specific language governing permissions and limitations under
+the License.
+-->
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../arc-icons/arc-icons.html">
+<link rel="import" href="../iron-flex-layout/iron-flex-layout.html">
+<link rel="import" href="../paper-styles/shadow.html">
+<link rel="import" href="../paper-button/paper-button.html">
+<link rel="import" href="../iron-icon/iron-icon.html">
+<link rel="import" href="../paper-menu-button/paper-menu-button.html">
+<link rel="import" href="../paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../paper-menu/paper-menu.html">
+<link rel="import" href="../paper-item/paper-item.html">
+<link rel="import" href="../paper-item/paper-icon-item.html">
+<link rel="import" href="../paper-item/paper-item-body.html">
+<!--
+`<rest-apis-list-item>` Displays a single list item for REST APIs list screen.
+
+### Example
+
+```html
+<rest-apis-list-item item="{...}"></rest-apis-list-panel>
+```
+
+### Styling
+`<rest-apis-list-item>` provides the following custom properties and mixins for styling:
+
+Custom property | Description | Default
+----------------|-------------|----------
+`--rest-apis-list-item` | Mixin applied to the element | `{}`
+`--rest-apis-list-item-action-button` | Mixin applied to the visible accrion button | `{}`
+
+@group UI Elements
+@element rest-apis-list-panel
+@demo demo/index.html
+-->
+<dom-module id="rest-apis-list-item">
+  <template>
+    <style>
+    :host {
+      @apply --arc-font-body1;
+      display: block;
+      color: rgba(0, 0, 0, 0.87);
+      @apply --rest-apis-list-item;
+    }
+
+    h3 {
+      font-size: 16px;
+      font-weight: 400;
+      padding: 0;
+      margin: 0;
+    }
+
+    .meta {
+      margin: 0;
+      padding: 0;
+      margin-right: 12px;
+    }
+
+    .api-icon {
+      color: var(--raml-icon-color, #73cfee);
+    }
+
+    .open-button {
+      @apply --rest-apis-list-item-action-button;
+    }
+
+    .open-button:hover {
+      @apply --rest-apis-list-item-action-button-hover;
+    }
+
+    .details {
+      @apply --layout-horizontal;
+    }
+    </style>
+    <paper-icon-item>
+      <iron-icon icon="arc:raml-r" item-icon class="api-icon"></iron-icon>
+      <paper-item-body two-line>
+        <h3>[[item.title]]</h3>
+        <div secondary class="details">
+          <p class="meta">Version: [[item.version]]</p>
+          <p class="meta">[[item.baseUri]]</p>
+        </div>
+      </paper-item-body>
+      <paper-button noink="[[noink]]" on-tap="requestOpen" class="open-button">Open</paper-button>
+      <paper-menu-button close-on-activate>
+        <paper-icon-button icon="arc:more-vert" class="dropdown-trigger"></paper-icon-button>
+        <paper-menu class="dropdown-content">
+          <paper-item on-tap="requestDelete">Delete</paper-item>
+        </paper-menu>
+      </paper-menu-button>
+    </paper-icon-item>
+  </template>
+  <script>
+  Polymer({
+    is: 'rest-apis-list-item',
+    properties: {
+      /**
+       * REST API index datastore object
+       */
+      item: Object,
+      /**
+       * If true, the element will not produce a ripple effect when interacted
+       * with via the pointer.
+       */
+      noink: Boolean
+    },
+
+    requestOpen: function() {
+      this.fire('open-list-item', this.item, {
+        bubbles: false
+      });
+    },
+
+    requestDelete: function() {
+      this.fire('delete-list-item', this.item, {
+        bubbles: false
+      });
+    }
+
+    /**
+     * Dispatched when the user click on "open" button.
+     * The event does not bubble.
+     *
+     * The detail object is the item passed to the element.
+     *
+     * @event open-list-item
+     */
+
+    /**
+     * Dispatched when the user click on "delete" button.
+     * The event does not bubble.
+     *
+     * The detail object is the item passed to the element.
+     *
+     * @event delete-list-item
+     */
+  });
+  </script>
+</dom-module>
