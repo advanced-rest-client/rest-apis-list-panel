@@ -133,6 +133,18 @@ Custom property | Description | Default
       width: calc(25% - 16px);
       margin: 8px;
     }
+
+    @media (max-width: 1000px) {
+      rest-apis-grid-item {
+        width: calc(50% - 16px);
+      }
+    }
+
+    @media all and (min-width: 1000px) and (max-width: 1200px) {
+      rest-apis-grid-item {
+        width: calc(33% - 16px);
+      }
+    }
     </style>
     <div class="header">
       <h2>REST APIs</h2>
@@ -149,7 +161,7 @@ Custom property | Description | Default
       <p class="empty-info">REST APIs list is empty. Drag and drop RAML zip file here to begin.</p>
     </template>
     <section class="list" data-grid$="[[gridActive]]" data-list$="[[listActive]]" hidden$="[[listHidden]]">
-      <template is="dom-repeat" items="[[items]]" index-as="index">
+      <template is="dom-repeat" items="[[items]]" index-as="index" id="list">
         <template is="dom-if" if="[[gridActive]]" restamp="true">
           <rest-apis-grid-item item="[[item]]" on-open-list-item="_navigateItem" on-delete-list-item="_deleteItem" noink="[[noink]]"></rest-apis-grid-item>
         </template>
@@ -330,12 +342,13 @@ Custom property | Description | Default
           return;
         }
         if (!this.items) {
-          items = this._prepareData(items);
+          items.sort(this._sortData);
           this.set('items', items);
         } else {
           var concat = this.items.concat(items);
-          concat = this._prepareData(concat);
+          concat.sort(this._sortData);
           this.set('items', concat);
+          this.$$('#list').render();
         }
         this._setQuerying(false);
         this.async(() => {
@@ -352,25 +365,16 @@ Custom property | Description | Default
       });
     },
     /**
-     * Sorts projects list by `order` property.
-     *
-     * @param {Array} list List of projects objects
-     * @return {Array} Sorted list of projects
+     * Sorts projects list by `order` and the `title` properties.
      */
-    _prepareData: function(list) {
-      if (!list || !list.length) {
-        return [];
+    _sortData: function(a, b) {
+      if (a.order < b.order) {
+        return -1;
       }
-      list.sort((a, b) => {
-        if (a.order < b.order) {
-          return -1;
-        }
-        if (a.order > b.order) {
-          return 1;
-        }
-        return a.title.localeCompare(b.title);
-      });
-      return list;
+      if (a.order > b.order) {
+        return 1;
+      }
+      return a.title.localeCompare(b.title);
     },
     // Computes value for the `dataUnavailable` property.
     _computeDataUnavailable: function(hasItems, querying) {
@@ -392,10 +396,9 @@ Custom property | Description | Default
       }
       var index = this.items.findIndex(obj => obj._id === item._id);
       if (index === -1) {
-        let it = this.items;
-        it.push(item);
-        it = this._prepareData(it);
-        this.set('items', it);
+        this.push('items', item);
+        this.items.sort(this._sortData);
+        this.$$('#list').render();
       } else {
         this.set(['item', index], item);
       }
