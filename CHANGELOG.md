@@ -1,3 +1,19 @@
+<a name="0.1.2"></a>
+## [0.1.2](https://github.com/advanced-rest-client/rest-apis-list-panel/compare/0.1.1...0.1.2) (2017-11-21)
+
+
+### Fix
+
+* Fixed list sorting and change event handling ([167d03b4a5fd5b5d0524b150a429519128476b92](https://github.com/advanced-rest-client/rest-apis-list-panel/commit/167d03b4a5fd5b5d0524b150a429519128476b92))
+
+### Update
+
+* Added css breakpoints ([462935cc3bef5377c98152b66c05090e335dfdc3](https://github.com/advanced-rest-client/rest-apis-list-panel/commit/462935cc3bef5377c98152b66c05090e335dfdc3))
+* Updated styles of the grid item. ([288129b3bd6dc341028353f67e69c751e221109c](https://github.com/advanced-rest-client/rest-apis-list-panel/commit/288129b3bd6dc341028353f67e69c751e221109c))
+* Updated tests after API change. ([8a008482e4cadd4f2b607cb86dc8f58e9293af50](https://github.com/advanced-rest-client/rest-apis-list-panel/commit/8a008482e4cadd4f2b607cb86dc8f58e9293af50))
+
+
+
 <a name="0.1.1"></a>
 ## 0.1.1 (2017-11-21)
 
