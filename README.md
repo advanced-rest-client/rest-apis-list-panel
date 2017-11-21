@@ -49,6 +49,7 @@ Custom property | Description | Default
 ----------------|-------------|----------
 `--rest-apis-grid-item` | Mixin applied to the element | `{}`
 `--rest-apis-grid-item-action-button` | Mixin applied to the visible accrion button | `{}`
+`--rest-apis-grid-item-card-background-color` | Background color of the card item | `#fff`
 
 
 

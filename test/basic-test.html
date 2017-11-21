@@ -113,7 +113,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       });
     });
 
-    suite('_prepareData()', function() {
+    suite('_sortData()', function() {
       var element;
       var data;
       setup(function() {
@@ -126,25 +126,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           title: 'a'
         }];
       });
-      test('Returns empty array if no argument passed', function() {
-        var result = element._prepareData();
-        assert.typeOf(result, 'array');
-        assert.lengthOf(result, 0);
-      });
-
-      test('Returns empty array if passed empty array', function() {
-        var result = element._prepareData([]);
-        assert.typeOf(result, 'array');
-        assert.lengthOf(result, 0);
-      });
-      test('Returns a list of documents', function() {
-        var result = element._prepareData(data);
-        assert.typeOf(result[0]._id, 'string');
-      });
-      test('Documents are sorted by name', function() {
-        var result = element._prepareData(data);
-        assert.equal(result[0]._id, '2');
-        assert.equal(result[1]._id, '1');
+      test('Sorts documents by name', function() {
+        data.sort(element._sortData);
+        assert.equal(data[0]._id, '2');
+        assert.equal(data[1]._id, '1');
       });
     });
 
