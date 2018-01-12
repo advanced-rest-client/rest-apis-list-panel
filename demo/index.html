@@ -39,7 +39,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <body unresolved>
   <template is="dom-bind" id="app">
     <rest-api-model></rest-api-model>
-    <rest-apis-list-panel attr-for-opened="opened" opened$="[[opened]]"></rest-apis-list-panel>
+    <rest-apis-list-panel attr-for-opened="opened" opened$="[[opened]]" render-explore></rest-apis-list-panel>
 
     <div class="controls">
       <input type="checkbox" checked$="[[opened]]" on-tap="toggleOpened"/>
