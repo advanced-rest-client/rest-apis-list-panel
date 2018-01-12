@@ -33,6 +33,15 @@ Custom property | Description | Default
 `--error-toast` | Mixin applied to the error toast | `{}`
 `--empty-info` | Mixin applied to the label rendered when no data is available. | `{}`
 
+
+
+### Events
+| Name | Description | Params |
+| --- | --- | --- |
+| navigate | Dispatched when the user opens the API portal. | base **String** - `api-console` or `exchange-search` |
+id **?String** - API datastore ID if `base` is `api-console` |
+| rest-api-deleted | Dispatched when the user request to delete API entry. | id **String** - Datastore id of the entry to be deleted |
+| rest-api-index-list | Dispatched automatically when the element becomes visible to request API listing data from the datastore. | nextPageToken **?String** - Optional, page token returned with previous query |
 # rest-apis-grid-item
 
 `<rest-apis-grid-panel>` Displays a single grid item for REST APIs list screen.
