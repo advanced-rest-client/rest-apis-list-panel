@@ -19,6 +19,7 @@ the License.
 <link rel="import" href="../paper-icon-button/paper-icon-button.html">
 <link rel="import" href="../paper-input/paper-input.html">
 <link rel="import" href="../iron-flex-layout/iron-flex-layout.html">
+<link rel="import" href="../paper-button/paper-button.html">
 <link rel="import" href="rest-apis-grid-item.html">
 <link rel="import" href="rest-apis-list-item.html">
 
@@ -74,7 +75,7 @@ Custom property | Description | Default
     h2 {
       margin-left: 16px;
       @apply --arc-font-headline;
-      @apply --layout-flex-9;
+      @apply --layout-flex;
     }
 
     [hidden] {
@@ -112,7 +113,6 @@ Custom property | Description | Default
     .header-actions {
       @apply --layout-horizontal;
       @apply --layout-center;
-      @apply --layout-flex-3;
     }
 
     .header-actions paper-input {
@@ -134,6 +134,11 @@ Custom property | Description | Default
       margin: 8px;
     }
 
+    .explore-button {
+      margin-right: 12px;
+      @apply --rest-apis-list-panel-explore-button;
+    }
+
     @media (max-width: 1000px) {
       rest-apis-grid-item {
         width: calc(50% - 16px);
@@ -149,6 +154,9 @@ Custom property | Description | Default
     <div class="header">
       <h2>REST APIs</h2>
       <div class="header-actions">
+        <template is="dom-if" if="[[renderExplore]]">
+          <paper-button raised on-tap="_openExplore" class="explore-button" data-action="explore-apis">Explore APIs</paper-button>
+        </template>
         <paper-icon-button icon="arc:view-column" class="dropdown-trigger" toggles active="[[gridActive]]" on-tap="_enableGrid"></paper-icon-button>
         <paper-icon-button icon="arc:view-list" class="dropdown-trigger" toggles active="[[listActive]]" on-tap="_enableList"></paper-icon-button>
         <paper-input type="search" value="{{query}}" label="Search" no-label-float on-search="updateSearch"></paper-input>
@@ -230,6 +238,10 @@ Custom property | Description | Default
         type: Boolean,
         computed: '_computeListHidden(hasItems, isSearch)'
       },
+      /**
+       * If set it renders the "Explore APIs" button
+       */
+      renderExplore: Boolean
     },
 
     observers: [
@@ -605,12 +617,18 @@ Custom property | Description | Default
       return !hasItems;
     },
 
+    _openExplore: function() {
+      this.fire('navigate', {
+        base: 'exchange-search'
+      });
+    }
+
     /**
      * Dispatched when the user opens the API portal.
      *
      * @event navigate
-     * @param {String} base Always `api-console`
-     * @param {String} id API datastore ID
+     * @param {String} base `api-console` or `exchange-search`
+     * @param {?String} id API datastore ID if `base` is `api-console`
      */
 
     /**

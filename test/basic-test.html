@@ -31,8 +31,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       </template>
     </test-fixture>
 
+    <test-fixture id="explore">
+      <template>
+        <rest-apis-list-panel render-explore></rest-apis-list-panel>
+      </template>
+    </test-fixture>
+
     <script>
-    /* global fixture, assert, DataGenerator */
+    /* global fixture, assert, DataGenerator, TestHelpers, MockInteractions, sinon */
     suite('basic', function() {
 
       suiteSetup(function() {
@@ -172,6 +178,27 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         assert.isFalse(result);
         result = element._computeDataUnavailable(false, true);
         assert.isFalse(result);
+      });
+    });
+
+    suite('Render explore', function() {
+      var element;
+      setup(function() {
+        element = fixture('explore');
+        TestHelpers.forceXIfStamp(element);
+      });
+
+      test('Renders the expore button', function() {
+        var button = element.$$('[data-action="explore-apis"]');
+        assert.ok(button);
+      });
+
+      test('Button sends navigate event', function() {
+        var spy = sinon.spy();
+        element.addEventListener('navigate', spy);
+        var button = element.$$('[data-action="explore-apis"]');
+        MockInteractions.tap(button);
+        assert.isTrue(spy.called);
       });
     });
     </script>
