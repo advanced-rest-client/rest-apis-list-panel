@@ -1,0 +1,91 @@
+<!--
+@license
+Copyright 2018 The Advanced REST client authors <arc@mulesoft.com>
+Licensed under the Apache License, Version 2.0 (the "License"); you may not
+use this file except in compliance with the License. You may obtain a copy of
+the License at
+http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+License for the specific language governing permissions and limitations under
+the License.
+-->
+<link rel="import" href="../polymer/lib/utils/mixin.html">
+<script>
+(function(global) {
+'use strict';
+if (!global.ArcComponents) {
+  /**
+   * @namespace ArcComponents
+   */
+  global.ArcComponents = {};
+}
+/**
+ * Common function for rest APIs list items.
+ *
+ * @polymer
+ * @mixinFunction
+ * @memberof ArcComponents
+ */
+global.ArcComponents.RestApisItemMixin = Polymer.dedupingMixin((base) => {
+  /**
+   * @polymer
+   * @mixinClass
+   */
+  class RestApisItemMixin extends base {
+    static get properties() {
+      return {
+        /**
+         * REST API index datastore object
+         */
+        item: Object,
+        /**
+         * If true, the element will not produce a ripple effect when interacted
+         * with via the pointer.
+         */
+        noink: Boolean
+      };
+    }
+    /**
+     * Dispatches `open-list-item` so the panel can take an action.
+     */
+    requestOpen() {
+      this.dispatchEvent(new CustomEvent('open-list-item', {
+        composed: true,
+        detail: this.item
+      }));
+    }
+    /**
+     * Dispatches `delete-list-item` so the panel can take an action.
+     */
+    requestDelete() {
+      this.dispatchEvent(new CustomEvent('delete-list-item', {
+        composed: true,
+        detail: this.item
+      }));
+    }
+
+    /**
+     * Dispatched when the user click on "open" button.
+     * The event does not bubble.
+     *
+     * The detail object is the item passed to the element.
+     *
+     * @event open-list-item
+     */
+
+    /**
+     * Dispatched when the user click on "delete" button.
+     * The event does not bubble.
+     *
+     * The detail object is the item passed to the element.
+     *
+     * @event delete-list-item
+     */
+  }
+  return RestApisItemMixin;
+});
+})(window);
+</script>
+</dom-module>

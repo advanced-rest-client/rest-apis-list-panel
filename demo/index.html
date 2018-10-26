@@ -1,91 +1,78 @@
 <!doctype html>
-<!--
-@license
-Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
-This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
-The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
-The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
-Code distributed by Google as part of the polymer project is also
-subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
--->
 <html>
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
   <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1, user-scalable=yes">
-
   <title>rest-apis-list-panel demo</title>
-
-  <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
-
+  <script src="../../webcomponentsjs/webcomponents-loader.js"></script>
   <link rel="import" href="../../iron-demo-helpers/demo-pages-shared-styles.html">
-  <link rel="import" href="../../iron-demo-helpers/demo-snippet.html">
   <link rel="import" href="../../arc-models/rest-api-model.html">
+  <link rel="import" href="../../app-pouchdb/pouchdb.html">
+  <link rel="import" href="../../arc-electron-default-theme/arc-electron-default-theme.html">
   <link rel="import" href="../rest-apis-list-panel.html">
+  <link rel="import" href="../../neon-animation/web-animations.html">
   <script src="data-generator.js"></script>
   <script src="../../chance/dist/chance.min.js"></script>
-  <style is="custom-style" include="demo-pages-shared-styles">
-  :root {
-    --arc-font-body1: {
-      @apply --paper-font-body1;
-    };
-
-    --arc-font-headline: {
-      @apply --paper-font-headline;
-    }
-  }
-  </style>
+  <custom-style>
+    <style is="custom-style" include="demo-pages-shared-styles">
+    </style>
+  </custom-style>
 </head>
 <body unresolved>
-  <template is="dom-bind" id="app">
-    <rest-api-model></rest-api-model>
-    <rest-apis-list-panel attr-for-opened="opened" opened$="[[opened]]" render-explore></rest-apis-list-panel>
+  <dom-bind id="app">
+    <template is="dom-bind">
+      <rest-api-model></rest-api-model>
+      <rest-apis-list-panel render-explore></rest-apis-list-panel>
 
-    <div class="controls">
-      <input type="checkbox" checked$="[[opened]]" on-tap="toggleOpened"/>
-      <button on-tap="generate">Generate 100 requests items</button>
-      <button on-tap="delete">Clear data</button>
-      <button on-tap="refresh">Refresh data</button>
-    </div>
-  </template>
-  <paper-toast id="genToast" text="The request data has been generated"></paper-toast>
-  <paper-toast id="delToast" text="The request data has been removed"></paper-toast>
-  <paper-toast id="navToast" text="" duration="7000"></paper-toast>
+      <div class="controls">
+        <button on-click="generate">Generate 100 requests items</button>
+        <button on-click="delete">Clear data</button>
+        <button on-click="refresh">Refresh data</button>
+      </div>
+
+      <paper-toast id="genToast" text="The request data has been generated"></paper-toast>
+      <paper-toast id="delToast" text="The request data has been removed"></paper-toast>
+      <paper-toast id="navToast" text="" duration="7000"></paper-toast>
+    </template>
+  </dom-bind>
   <script>
   /* global DataGenerator */
   window.addEventListener('navigate', function(e) {
-    var toast = document.getElementById('navToast');
-    var d = e.detail;
-    toast.text = 'Navigation ocurred to: ' + d.base + ', and id: ' + d.id;
+    const toast = document.getElementById('navToast');
+    const {base, id} = e.detail;
+    let txt = 'Navigation ocurred to: ' + base;
+    if (id) {
+      txt += ', and id: ' + id;
+    }
+    toast.text = txt;
     toast.opened = true;
   });
   (function(scope) {
-    scope.opened = true;
     scope.generate = function() {
       DataGenerator.generateData(100)
-        .then(() => {
-          document.getElementById('genToast').opened = true;
-          scope.refresh();
-        });
+      .then(() => {
+        document.getElementById('genToast').opened = true;
+        scope.refresh();
+      });
     };
+
     scope.refresh = function() {
       document.querySelector('rest-apis-list-panel').refresh();
     };
+
     scope.delete = function() {
       DataGenerator.destroyData()
-        .then(() => {
-          document.getElementById('delToast').opened = true;
-          var e = new CustomEvent('datastore-destroyed', {
-            bubbles: true,
-            detail: {
-              datastore: 'rest-api-index'
-            }
-          });
-          document.body.dispatchEvent(e);
+      .then(() => {
+        document.getElementById('delToast').opened = true;
+        const e = new CustomEvent('datastore-destroyed', {
+          bubbles: true,
+          detail: {
+            datastore: 'rest-api-index'
+          }
         });
-    };
-    scope.toggleOpened = function() {
-      scope.opened = !scope.opened;
+        document.body.dispatchEvent(e);
+      });
     };
   })(document.getElementById('app'));
   </script>
