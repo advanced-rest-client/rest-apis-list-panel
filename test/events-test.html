@@ -1,0 +1,221 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+    <script src="../../webcomponentsjs/webcomponents-loader.js"></script>
+    <script src="../../web-component-tester/browser.js"></script>
+    <script src="../../iron-test-helpers/mock-interactions.js"></script>
+    <script src="../demo/data-generator.js"></script>
+    <script src="../../chance/dist/chance.min.js"></script>
+    <link rel="import" href="../rest-apis-list-panel.html">
+    <link rel="import" href="../../arc-models/rest-api-model.html">
+    <link rel="import" href="../../app-pouchdb/pouchdb.html">
+  </head>
+  <body>
+    <rest-api-model></rest-api-model>
+
+    <test-fixture id="Basic">
+      <template>
+        <rest-apis-list-panel></rest-apis-list-panel>
+      </template>
+    </test-fixture>
+
+    <script>
+    /* global DataGenerator */
+    /* global DataGenerator */
+    suite('Events tests', function() {
+      suiteSetup(function() {
+        return DataGenerator.destroyData();
+      });
+
+      function genIndexItem(id) {
+        id = id || 'test-id';
+        return {
+          _id: id,
+          title: 'test-title',
+          order: 0,
+          latest: 'a',
+          versions: ['a']
+        };
+      }
+
+      function fire(type, detail, cancelable) {
+        if (typeof cancelable !== 'boolean') {
+          cancelable = false;
+        }
+        const e = new CustomEvent(type, {
+          detail,
+          cancelable,
+          bubbles: true
+        });
+        document.body.dispatchEvent(e);
+        return e;
+      }
+
+      function fireUpdated(id, cancelable) {
+        return fire('api-index-changed', {
+          apiInfo: genIndexItem(id)
+        }, cancelable);
+      }
+
+      function fireDeleted(id, cancelable) {
+        return fire('api-deleted', {
+          id: id || 'test-id'
+        }, cancelable);
+      }
+
+      function fireDbDeleted(name) {
+        const detail = {};
+        if (name) {
+          detail.datastore = name;
+        }
+        return fire('datastore-destroyed', detail);
+      }
+
+      suite('Update event', function() {
+        let element;
+        setup(() => {
+          element = fixture('Basic');
+        });
+
+        test('Ignores cancelable events', () => {
+          fireUpdated(undefined, true);
+          assert.isUndefined(element.items);
+        });
+
+        test('Adds an item to undefined list', () => {
+          fireUpdated();
+          assert.typeOf(element.items, 'array');
+          assert.lengthOf(element.items, 1);
+        });
+
+        test('Computes `hasItems` after adding', () => {
+          fireUpdated();
+          assert.isTrue(element.hasItems);
+        });
+
+        test('Updates an existing item', () => {
+          const item = genIndexItem();
+          item.title = 'test-existing';
+          element.items = [item];
+          fireUpdated(item._id);
+          assert.lengthOf(element.items, 1);
+          const current = element.items[0];
+          assert.equal(current.title, 'test-title');
+        });
+
+        test('Adds new item to existing list', () => {
+          const item = genIndexItem();
+          item._id = 'test-id2';
+          element.items = [item];
+          fireUpdated();
+          assert.lengthOf(element.items, 2);
+        });
+
+        test('Updates existing item when is search', () => {
+          const item = genIndexItem();
+          item.title = 'test-existing';
+          element.items = [item];
+          element.queryItems('test');
+          fireUpdated(item._id);
+          assert.lengthOf(element.items, 1);
+          const current = element.items[0];
+          assert.equal(current.title, 'test-title');
+        });
+
+        test('Updates existing hidden item when is search', () => {
+          const items = DataGenerator.generateApis(5);
+          items[0].title = 'test-existing';
+          items[1].title = 'abc';
+          const id = items[1]._id;
+          element.items = items;
+          element.queryItems('test');
+          fireUpdated(id);
+          const current = element._beforeQueryItems[1];
+          assert.equal(current.title, 'test-title');
+        });
+      });
+
+      suite('Delete event', function() {
+        let element;
+        setup(() => {
+          element = fixture('Basic');
+        });
+
+        test('Ignores cancelable events', () => {
+          fireDeleted(undefined, true);
+          assert.isUndefined(element.items);
+        });
+
+        test('Do nothing if item is not on the list', () => {
+          const item = genIndexItem();
+          item._id = 'other-id';
+          element.items = [item];
+          fireDeleted();
+          assert.lengthOf(element.items, 1);
+        });
+
+        test('Removes item from the list', () => {
+          element.items = [genIndexItem()];
+          fireDeleted();
+          assert.lengthOf(element.items, 0);
+        });
+
+        test('Computes `hasItems` after removal', () => {
+          element.items = [genIndexItem()];
+          fireDeleted();
+          assert.isFalse(element.hasItems);
+        });
+
+        test('Deletes existing hidden item when is search', () => {
+          const items = DataGenerator.generateApis(5);
+          items[0].title = 'test-existing';
+          items[1].title = 'abc';
+          const id = items[1]._id;
+          element.items = items;
+          element.queryItems('test');
+          fireDeleted(id);
+          assert.lengthOf(element._beforeQueryItems, 4);
+          const current = element._beforeQueryItems[1];
+          assert.notEqual(current.title, 'abc');
+        });
+      });
+
+      suite('Delete datastore event', function() {
+        let element;
+        setup(() => {
+          element = fixture('Basic');
+          element.items = [genIndexItem()];
+        });
+
+        test('Ignores events without `datastore` property', () => {
+          fireDbDeleted();
+          assert.lengthOf(element.items, 1);
+        });
+
+        test('Ignores other deleted data stores', () => {
+          fireDbDeleted('test');
+          assert.lengthOf(element.items, 1);
+        });
+
+        test('Clears items for "api-index"', () => {
+          fireDbDeleted('api-index');
+          assert.lengthOf(element.items, 0);
+        });
+
+        test('Clears items for "all"', () => {
+          fireDbDeleted('all');
+          assert.lengthOf(element.items, 0);
+        });
+
+        test('Clears items for "api-index" as an array', () => {
+          fireDbDeleted(['api-index']);
+          assert.lengthOf(element.items, 0);
+        });
+      });
+    });
+    </script>
+
+  </body>
+</html>
