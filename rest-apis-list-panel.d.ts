@@ -101,6 +101,12 @@ declare namespace UiElements {
      * If set it renders the "Explore APIs" button
      */
     renderExplore: boolean|null|undefined;
+
+    /**
+     * When set the element won't query for APIs data when connected to the DOM.
+     * In this case manually call `makeQuery()`
+     */
+    noAutoQuery: boolean|null|undefined;
     connectedCallback(): void;
     disconnectedCallback(): void;
 
@@ -120,7 +126,6 @@ declare namespace UiElements {
      * It resets the query options, clears items and makes a query to the datastore.
      */
     refresh(): void;
-    _requery(): void;
 
     /**
      * Handler for the `datastore-destroyed` custom event
@@ -136,13 +141,20 @@ declare namespace UiElements {
 
     /**
      * The function to call when new query for data is needed.
+     * Use this intead of `loadPage()` as this function uses debouncer to
+     * prevent multiple calls at once.
      */
     makeQuery(): void;
+    _dispatchApiList(detail: any): any;
+    _getApiListDetail(): any;
 
     /**
      * Performs the query and processes the result.
+     * This function immediately queries the data model for data.
+     * It does this in a loop until all data are read.
      */
-    _loadPage(): Promise<any>|null;
+    loadPage(): Promise<any>|null;
+    _renderList(): void;
 
     /**
      * Sorts projects list by `order` and the `title` properties.
@@ -205,6 +217,7 @@ declare namespace UiElements {
      * API project.
      */
     _navigateItem(e: CustomEvent|null): void;
+    _dispatchDelete(id: any): any;
 
     /**
      * Dispatches cancelable `api-deleted` event for the model to delete
@@ -213,7 +226,7 @@ declare namespace UiElements {
      * This requires `arc-models/rest-api-model` element to be present in the
      * DOM.
      */
-    _deleteItem(e: CustomEvent|null): void;
+    _deleteItem(e: CustomEvent|null): Promise<any>|null;
 
     /**
      * Computes value of the `listHidden` property.
