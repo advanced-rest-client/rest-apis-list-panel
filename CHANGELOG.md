@@ -1,3 +1,13 @@
+<a name="2.0.0"></a>
+# [2.0.0](https://github.com/advanced-rest-client/rest-apis-list-panel/compare/0.1.3...2.0.0) (2019-01-10)
+
+
+### New
+
+* Adding explore APIs button ([1c892cd03d9af841c4171aa5b132c260d1629f41](https://github.com/advanced-rest-client/rest-apis-list-panel/commit/1c892cd03d9af841c4171aa5b132c260d1629f41))
+
+
+
 <a name="0.1.4"></a>
 ## [0.1.4](https://github.com/advanced-rest-client/rest-apis-list-panel/compare/0.1.3...0.1.4) (2018-01-12)
 
