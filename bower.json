@@ -31,7 +31,7 @@
     "paper-progress": "PolymerElements/paper-progress#^2.0.0",
     "paper-item": "PolymerElements/paper-item#^2.0.0",
     "paper-input": "PolymerElements/paper-input#^2.0.0",
-    "arc-file-drop-mixin": "advanced-rest-client/arc-file-drop-mixin#2.0.0-preview"
+    "arc-file-drop-mixin": "advanced-rest-client/arc-file-drop-mixin#^2.0.0"
   },
   "devDependencies": {
     "iron-component-page": "PolymerElements/iron-component-page#^3.0.1",

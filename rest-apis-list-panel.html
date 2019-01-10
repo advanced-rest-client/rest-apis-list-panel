@@ -212,7 +212,12 @@ the License.
         /**
          * If set it renders the "Explore APIs" button
          */
-        renderExplore: Boolean
+        renderExplore: Boolean,
+        /**
+         * When set the element won't query for APIs data when connected to the DOM.
+         * In this case manually call `makeQuery()`
+         */
+        noAutoQuery: Boolean
       };
     }
 
@@ -229,12 +234,18 @@ the License.
       window.addEventListener('datastore-destroyed', this._onDatabaseDestroy);
       window.addEventListener('api-index-changed', this._indexUpdated);
       window.addEventListener('api-deleted', this._indexDeleted);
-      this._requery();
       this.$.search.inputElement.addEventListener('search', this.updateSearch);
+      if (!this.noAutoQuery && !this.querying && !this.items) {
+        this.makeQuery();
+      }
     }
 
     disconnectedCallback() {
       super.disconnectedCallback();
+      if (this.__queryTimeout) {
+        clearTimeout(this.__queryTimeout);
+        this.__queryTimeout = undefined;
+      }
       window.removeEventListener('datastore-destroyed', this._onDatabaseDestroy);
       window.removeEventListener('api-index-changed', this._indexUpdated);
       window.removeEventListener('api-deleted', this._indexDeleted);
@@ -246,6 +257,10 @@ the License.
     reset() {
       if (this.nextPageToken) {
         this.nextPageToken = undefined;
+      }
+      if (this.__queryTimeout) {
+        clearTimeout(this.__queryTimeout);
+        this.__queryTimeout = undefined;
       }
       this._setQuerying(false);
       this.set('items', []);
@@ -271,12 +286,6 @@ the License.
       this.makeQuery();
     }
 
-    _requery() {
-      if (!this.items && !this.querying) {
-        this.makeQuery();
-      }
-    }
-
     // Handler for the `datastore-destroyed` custom event
     _onDatabaseDestroy(e) {
       let datastore = e.detail.datastore;
@@ -286,10 +295,10 @@ the License.
       if (typeof datastore === 'string') {
         datastore = [datastore];
       }
-      if (datastore.indexOf('rest-api-index') === -1 && datastore[0] !== 'all') {
+      if (datastore.indexOf('api-index') === -1 && datastore[0] !== 'all') {
         return;
       }
-      this.reset();
+      this.refresh();
     }
 
     /**
@@ -302,47 +311,62 @@ the License.
     }
     /**
      * The function to call when new query for data is needed.
+     * Use this intead of `loadPage()` as this function uses debouncer to
+     * prevent multiple calls at once.
      */
     makeQuery() {
-      if (this.__queryDebouncer) {
+      if (this.__makingQuery) {
         return;
       }
-      this.__queryDebouncer = true;
-      setTimeout(() => {
-        this.__queryDebouncer = false;
-        this._loadPage();
+      this.__makingQuery = true;
+      this.__queryTimeout = setTimeout(() => {
+        this.__queryTimeout = undefined;
+        this.__makingQuery = false;
+        this.loadPage();
       }, 20);
     }
-    /**
-     * Performs the query and processes the result.
-     * @return {Promise}
-     */
-    _loadPage() {
-      this._setQuerying(true);
+
+    _dispatchApiList(detail) {
+      const e = new CustomEvent('api-index-list', {
+        detail,
+        bubbles: true,
+        cancelable: true,
+        composed: true
+      });
+      this.dispatchEvent(e);
+      return e;
+    }
+
+    _getApiListDetail() {
       const detail = {};
       if (this.nextPageToken) {
         detail.nextPageToken = this.nextPageToken;
       }
-      const e = new CustomEvent('api-index-list', {
-        bubbles: true,
-        composed: true,
-        cancelable: true,
-        detail
-      });
-      this.dispatchEvent(e);
+      return detail;
+    }
+    /**
+     * Performs the query and processes the result.
+     * This function immediately queries the data model for data.
+     * It does this in a loop until all data are read.
+     *
+     * @return {Promise}
+     */
+    loadPage() {
+      const detail = this._getApiListDetail();
+      const e = this._dispatchApiList(detail);
       if (!e.defaultPrevented) {
         this._setQuerying(false);
-        console.warn('REST API model detached from the DOM.');
-        return;
+        console.warn('REST API model not in the DOM.');
+        return Promise.reject(new Error('Model not found'));
       }
       return e.detail.result
       .then((result) => {
+        this._setQuerying(false);
         this.nextPageToken = result.nextPageToken;
         return result.items;
       })
       .then((items) => {
         if (!items || !items.length) {
-          this._setQuerying(false);
           return;
         }
         if (!this.items) {
@@ -352,20 +376,22 @@ the License.
           const concat = this.items.concat(items);
           concat.sort(this._sortData);
           this.set('items', concat);
-          this.shadowRoot.querySelector('#list').render();
+          this._renderList();
         }
-        this._setQuerying(false);
-        setTimeout(() => {
-          this._loadPage();
-        }, 10);
+        this.makeQuery();
       })
       .catch((e) => {
         this._setQuerying(false);
-        console.error('Query menu items', e);
+        console.warn('Query menu items', e);
       });
+    }
+
+    _renderList() {
+      this.shadowRoot.querySelector('#list').render();
     }
     /**
      * Sorts projects list by `order` and the `title` properties.
+     *
      * @param {Object} a
      * @param {Object} b
      * @return {Number}
@@ -377,7 +403,7 @@ the License.
       if (a.order > b.order) {
         return 1;
       }
-      return a.title.localeCompare(b.title);
+      return (a.title || '').localeCompare(b.title);
     }
     /**
      * Computes value for the `dataUnavailable` property.
@@ -406,15 +432,16 @@ the License.
       }
       if (!this.items) {
         this.set('items', [item]);
+        this._renderList();
         return;
       }
       const index = this.items.findIndex((obj) => obj._id === item._id);
       if (index === -1) {
         this.push('items', item);
         this.items.sort(this._sortData);
-        this.shadowRoot.querySelector('#list').render();
+        this._renderList();
       } else {
-        this.set(['item', index], item);
+        this.set(['items', index], item);
       }
     }
     /**
@@ -469,6 +496,7 @@ the License.
         return;
       }
       this.splice('items', index, 1);
+      this._renderList();
     }
     /**
      * Handles delete event when search is on.
@@ -486,6 +514,7 @@ the License.
         const index = items.findIndex((obj) => obj._id === id);
         if (index > -1) {
           this.splice('items', index, 1);
+          this._renderList();
         }
       }
       // checks in-memory full list of items
@@ -521,15 +550,14 @@ the License.
         return;
       }
       query = this._prepareQuery(query);
-      const encodedQuery = encodeURIComponent(query);
       const matches = availableItems.filter((item) => {
-        if (item._id.toLowerCase().indexOf(encodedQuery) !== -1) {
+        if (item._id.toLowerCase().indexOf(query) !== -1) {
           return true;
         }
-        if (item.title && item.title.indexOf(encodedQuery) !== -1) {
+        if (typeof item.title === 'string' && item.title.toLowerCase().indexOf(query) !== -1) {
           return true;
         }
-        if (item.description && item.description.indexOf(query) !== -1) {
+        if (typeof item.description === 'string' && item.description.indexOf(query) !== -1) {
           return true;
         }
         return false;
@@ -555,14 +583,30 @@ the License.
      * @param {CustomEvent} e
      */
     _navigateItem(e) {
+      const id = e.model.get('item._id');
+      const version = e.model.get('item.latest');
       this.dispatchEvent(new CustomEvent('navigate', {
         bubbles: true,
         composed: true,
         detail: {
           base: 'api-console',
-          id: e.detail._id
+          id,
+          version
         }
       }));
+    }
+
+    _dispatchDelete(id) {
+      const e = new CustomEvent('api-deleted', {
+        bubbles: true,
+        composed: true,
+        cancelable: true,
+        detail: {
+          id
+        }
+      });
+      this.dispatchEvent(e);
+      return e;
     }
     /**
      * Dispatches cancelable `api-deleted` event for the model to delete
@@ -571,22 +615,15 @@ the License.
      * This requires `arc-models/rest-api-model` element to be present in the
      * DOM.
      * @param {CustomEvent} e
+     * @return {Promise}
      */
     _deleteItem(e) {
-      const ev = new CustomEvent('api-deleted', {
-        bubbles: true,
-        composed: true,
-        cancelable: true,
-        detail: {
-          id: e.detail._id
-        }
-      });
-      this.dispatchEvent(ev);
+      const ev = this._dispatchDelete(e.detail._id);
       if (!ev.defaultPrevented) {
         this.$.noModel.opened = true;
-        return;
+        return Promise.reject(new Error('No rest api model'));
       }
-      ev.detail.result.then(() => {
+      return ev.detail.result.then(() => {
         this.$.deletedToast.opened = true;
       })
       .catch((cause) => {
