@@ -50,3 +50,7 @@
 
 
 
+# [3.0.0](https://github.com/advanced-rest-client/rest-apis-list-panel/compare/0.1.3...3.0.0) (2019-10-01)
+
+
+
