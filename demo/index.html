@@ -1,80 +1,31 @@
 <!doctype html>
 <html>
+
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
   <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1, user-scalable=yes">
   <title>rest-apis-list-panel demo</title>
-  <script src="../../webcomponentsjs/webcomponents-loader.js"></script>
-  <link rel="import" href="../../iron-demo-helpers/demo-pages-shared-styles.html">
-  <link rel="import" href="../../arc-models/rest-api-model.html">
-  <link rel="import" href="../../app-pouchdb/pouchdb.html">
-  <link rel="import" href="../../arc-electron-default-theme/arc-electron-default-theme.html">
-  <link rel="import" href="../rest-apis-list-panel.html">
-  <link rel="import" href="../../neon-animation/web-animations.html">
-  <script src="data-generator.js"></script>
-  <script src="../../chance/dist/chance.min.js"></script>
-  <custom-style>
-    <style is="custom-style" include="demo-pages-shared-styles">
-    </style>
-  </custom-style>
+
+  <style>
+  .centered[role="main"] {
+    max-width: 1400px;
+  }
+
+  body.styled {
+    --anypoiont-dropdown-shaddow: 0 4px 5px 0 rgba(0, 0, 0, 0.14), 0 1px 10px 0 rgba(0, 0, 0, 0.12), 0 2px 4px -1px rgba(0, 0, 0, 0.4);
+  }
+
+  rest-apis-list-panel {
+    width: 800px;
+    height: 900px;
+  }
+  </style>
 </head>
-<body unresolved>
-  <dom-bind id="app">
-    <template is="dom-bind">
-      <rest-api-model></rest-api-model>
-      <rest-apis-list-panel render-explore></rest-apis-list-panel>
 
-      <div class="controls">
-        <button on-click="generate">Generate 100 requests items</button>
-        <button on-click="delete">Clear data</button>
-        <button on-click="refresh">Refresh data</button>
-      </div>
-
-      <paper-toast id="genToast" text="The request data has been generated"></paper-toast>
-      <paper-toast id="delToast" text="The request data has been removed"></paper-toast>
-      <paper-toast id="navToast" text="" duration="7000"></paper-toast>
-    </template>
-  </dom-bind>
-  <script>
-  /* global DataGenerator */
-  window.addEventListener('navigate', function(e) {
-    const toast = document.getElementById('navToast');
-    const {base, id} = e.detail;
-    let txt = 'Navigation ocurred to: ' + base;
-    if (id) {
-      txt += ', and id: ' + id;
-    }
-    toast.text = txt;
-    toast.opened = true;
-  });
-  (function(scope) {
-    scope.generate = function() {
-      DataGenerator.generateData(100)
-      .then(() => {
-        document.getElementById('genToast').opened = true;
-        scope.refresh();
-      });
-    };
-
-    scope.refresh = function() {
-      document.querySelector('rest-apis-list-panel').refresh();
-    };
-
-    scope.delete = function() {
-      DataGenerator.destroyData()
-      .then(() => {
-        document.getElementById('delToast').opened = true;
-        const e = new CustomEvent('datastore-destroyed', {
-          bubbles: true,
-          detail: {
-            datastore: 'rest-api-index'
-          }
-        });
-        document.body.dispatchEvent(e);
-      });
-    };
-  })(document.getElementById('app'));
-  </script>
+<body>
+  <div id="demo"></div>
+  <script type="module" src="index.js"></script>
 </body>
+
 </html>
