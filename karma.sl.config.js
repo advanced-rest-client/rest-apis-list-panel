@@ -5,7 +5,7 @@ const createBaseConfig = require('./karma.conf.js');
 
 module.exports = (config) => {
   const cnf = slSettings();
-  cnf.sauceLabs.testName = 'request-editor';
+  cnf.sauceLabs.testName = 'rest-apis-list-panel';
   cnf.browsers = [
     'SL_Chrome',
     'SL_Chrome-1',
